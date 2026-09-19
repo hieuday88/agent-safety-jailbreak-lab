@@ -20,7 +20,7 @@ npm run compile
 npm run package
 ```
 
-Keep changes focused and document user-visible behavior in `CHANGELOG.md`. Do not commit `node_modules`, generated VSIX packages, private configuration, credentials, or downloaded instruction profiles.
+Keep changes focused and document user-visible behavior in `CHANGELOG.md`; edits to the bundled profiles in `resources/rules/` are user-visible and should be described there too. Do not commit `node_modules`, generated VSIX packages, private configuration, or credentials.
 
 ## Pull requests
 

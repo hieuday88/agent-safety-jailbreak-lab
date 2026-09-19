@@ -5,20 +5,22 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 
 function getBypassContent(extensionPath: string, bypassType: string): string {
-    const isV2 = bypassType.toUpperCase() === 'V2';
-    const targetFileName = isV2 ? 'bypass_v2.md' : 'bypass_v1.md';
-    const candidates = [
-        path.join(extensionPath, 'resources', 'rules', targetFileName),
-        path.join(extensionPath, 'resources', 'rules', isV2 ? 'bypass-v2.md' : 'bypass-v1.md'),
-        path.join(extensionPath, 'resources', 'rules', isV2 ? 'gemini_v2.md' : 'gemini_v1.md')
-    ];
+    const normalizedType = bypassType.toUpperCase();
+    const variants: Record<string, string[]> = {
+        V1: ['bypass_v1.md', 'bypass-v1.md', 'gemini_v1.md'],
+        V2: ['bypass_v2.md', 'bypass-v2.md', 'gemini_v2.md'],
+        V3: ['bypass_v3.md', 'bypass-v3.md', 'gemini_v3.md']
+    };
+    const filenames = variants[normalizedType] ?? variants.V1;
+    const primaryFileName = filenames[0];
 
-    for (const fullPath of candidates) {
+    for (const filename of filenames) {
+        const fullPath = path.join(extensionPath, 'resources', 'rules', filename);
         if (fs.existsSync(fullPath)) {
             return fs.readFileSync(fullPath, 'utf8');
         }
     }
-    throw new Error(`Không tìm thấy file cấu hình bypass ${bypassType} (${targetFileName}) trong extension.`);
+    throw new Error(`Không tìm thấy file cấu hình bypass ${bypassType} (${primaryFileName}) trong extension.`);
 }
 
 function getClaudeConfigDir(): string {
@@ -26,12 +28,126 @@ function getClaudeConfigDir(): string {
     return configuredDir ? path.resolve(configuredDir) : path.join(os.homedir(), '.claude');
 }
 
-const ONLYTRIS_OUTPUT_STYLE_NAME = 'OnlyTris';
+const LUNA_OUTPUT_STYLE_NAME = 'Luna';
 const CLAUDE_OUTPUT_STYLE_BACKUP_KEY = 'claudeOutputStyleBackup';
+const SELECTED_TARGETS_KEY = 'selectedTargets';
+
+// Names written by releases published before the rename. They are kept so that an
+// upgrade can clean up the profile those versions installed, instead of leaving
+// settings.json pointing at a style file nothing owns any more.
+const LEGACY_OUTPUT_STYLE_NAMES = ['OnlyTris'];
+const LEGACY_OUTPUT_STYLE_FILENAMES = ['onlytris.md'];
+
+type TargetKey = 'gemini' | 'kiro' | 'claude';
+
+const TARGET_KEYS: readonly TargetKey[] = ['gemini', 'kiro', 'claude'];
+const TARGET_LABELS: Record<TargetKey, string> = {
+    gemini: 'Antigravity',
+    kiro: 'Kiro',
+    claude: 'Claude Code'
+};
 
 interface ClaudeOutputStyleBackup {
     hadValue: boolean;
     value?: unknown;
+}
+
+/**
+ * Resolves the environments an action may touch. The webview owns the selection
+ * made in step 2 (the three toggles), so only those keys are honoured. A missing
+ * or empty payload falls back to every environment instead of silently doing
+ * nothing.
+ */
+function resolveTargets(raw: unknown): TargetKey[] {
+    if (!Array.isArray(raw)) {
+        return TARGET_KEYS.slice();
+    }
+    const selected = TARGET_KEYS.filter((key) => raw.indexOf(key) !== -1);
+    return selected.length > 0 ? selected : TARGET_KEYS.slice();
+}
+
+function formatTargetList(targets: readonly TargetKey[]): string {
+    return targets.map((key) => TARGET_LABELS[key]).join(', ');
+}
+
+/** True when the configured output style is one this extension owns (current or legacy). */
+function isManagedOutputStyle(value: unknown): boolean {
+    return value === LUNA_OUTPUT_STYLE_NAME || LEGACY_OUTPUT_STYLE_NAMES.indexOf(String(value)) !== -1;
+}
+
+/**
+ * Suffix of the sidecar holding whatever the user had at a target path before the
+ * first overwrite. A sidecar rather than editor state, so the original cannot be
+ * lost by clearing extension storage and it can be restored by hand.
+ */
+const BACKUP_SUFFIX = '.lunabak';
+
+interface TargetEnvironment {
+    key: TargetKey;
+    filePath: string;
+    /** Exact bodies this extension may have written, used to recognise our own output. */
+    ownedContents: readonly string[];
+}
+
+function backupPathFor(filePath: string): string {
+    return `${filePath}${BACKUP_SUFFIX}`;
+}
+
+/**
+ * Preserves user-owned content before the first overwrite. Content this extension
+ * wrote is recognised and skipped, and an existing backup is never replaced, so the
+ * earliest copy always wins.
+ */
+function backupUserFile(environment: TargetEnvironment): boolean {
+    const { filePath, ownedContents } = environment;
+    const backupPath = backupPathFor(filePath);
+
+    if (fs.existsSync(backupPath) || !fs.existsSync(filePath)) {
+        return false;
+    }
+
+    const current = fs.readFileSync(filePath, 'utf8');
+    if (ownedContents.indexOf(current) !== -1) {
+        return false;
+    }
+
+    fs.mkdirSync(path.dirname(backupPath), { recursive: true });
+    fs.writeFileSync(backupPath, current, 'utf8');
+    return true;
+}
+
+/**
+ * Undoes a sync: the saved original is put back when there is one, our own output
+ * is removed when there is not, and anything unrecognised is left untouched so
+ * this can never delete a file it did not write.
+ */
+function restoreUserFile(environment: TargetEnvironment): 'restored' | 'removed' | 'untouched' {
+    const { filePath, ownedContents } = environment;
+    const backupPath = backupPathFor(filePath);
+
+    if (fs.existsSync(backupPath)) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, fs.readFileSync(backupPath, 'utf8'), 'utf8');
+        fs.unlinkSync(backupPath);
+        return 'restored';
+    }
+
+    if (fs.existsSync(filePath) && ownedContents.indexOf(fs.readFileSync(filePath, 'utf8')) !== -1) {
+        fs.unlinkSync(filePath);
+        return 'removed';
+    }
+
+    return 'untouched';
+}
+
+/** Version reported by the panel, read from the packaged manifest so the two cannot drift. */
+function readExtensionVersion(extensionPath: string): string {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(path.join(extensionPath, 'package.json'), 'utf8')) as { version?: unknown };
+        return typeof parsed.version === 'string' ? parsed.version : 'unknown';
+    } catch {
+        return 'unknown';
+    }
 }
 
 function readJsonObject(filePath: string): Record<string, unknown> {
@@ -55,8 +171,8 @@ function writeJsonObject(filePath: string, value: Record<string, unknown>): void
 function createClaudeOutputStyleContent(instructions: string): string {
     return [
         '---',
-        `name: ${ONLYTRIS_OUTPUT_STYLE_NAME}`,
-        'description: Global OnlyTris response style',
+        `name: ${LUNA_OUTPUT_STYLE_NAME}`,
+        'description: Global Luna response style',
         'keep-coding-instructions: true',
         '---',
         '',
@@ -124,9 +240,40 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
         // User-level Claude output styles are global across projects. Respecting
         // CLAUDE_CONFIG_DIR keeps the extension portable across machines.
         const claudeConfigDir = getClaudeConfigDir();
-        const claudeOutputStylePath = path.join(claudeConfigDir, 'output-styles', 'onlytris.md');
+        const claudeOutputStylePath = path.join(claudeConfigDir, 'output-styles', 'luna.md');
         const claudeSettingsPath = path.join(claudeConfigDir, 'settings.json');
-        const legacyClaudeRulePath = path.join(claudeConfigDir, 'rules', 'onlytris.md');
+        // Profiles left behind by pre-rename releases, removed once the new style is in place.
+        const staleClaudeStylePaths = LEGACY_OUTPUT_STYLE_FILENAMES.map((name) =>
+            path.join(claudeConfigDir, 'output-styles', name)
+        );
+        const staleClaudeRulePaths = LEGACY_OUTPUT_STYLE_FILENAMES.map((name) =>
+            path.join(claudeConfigDir, 'rules', name)
+        );
+
+        // Every body this extension can write, so a file it owns is never mistaken
+        // for user content, and vice versa.
+        const bundledProfiles: string[] = [];
+        for (const profileType of ['V1', 'V2', 'V3']) {
+            try {
+                bundledProfiles.push(getBypassContent(this._extensionUri.fsPath, profileType));
+            } catch {
+                // A missing profile only means that body cannot be recognised here.
+            }
+        }
+
+        const environments: TargetEnvironment[] = [
+            { key: 'gemini', filePath: geminiPath, ownedContents: bundledProfiles },
+            { key: 'kiro', filePath: kiroPath, ownedContents: bundledProfiles },
+            {
+                key: 'claude',
+                filePath: claudeOutputStylePath,
+                ownedContents: bundledProfiles.map(createClaudeOutputStyleContent)
+            }
+        ];
+        const environmentFor = (key: TargetKey): TargetEnvironment =>
+            environments.filter((environment) => environment.key === key)[0];
+
+        const extensionVersion = readExtensionVersion(this._extensionUri.fsPath);
 
         // Helper to get stats of a single file
         const getSingleFileStats = (filePath: string) => {
@@ -168,133 +315,170 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
                 case 'ready': {
                     const stats = getFileStats();
                     const savedBypassType = this._globalState.get<string>('bypassType') || 'V1';
+                    const savedTargets = this._globalState.get<unknown>(SELECTED_TARGETS_KEY);
                     webviewView.webview.postMessage({
                         command: 'load',
                         stats: stats,
                         deviceId: this._deviceId,
-                        bypassType: savedBypassType
+                        version: extensionVersion,
+                        bypassType: savedBypassType,
+                        targets: Array.isArray(savedTargets) ? resolveTargets(savedTargets) : undefined
                     });
                     break;
                 }
                 case 'activateSync': {
                     try {
+                        const targets = resolveTargets(message.targets);
                         const bypassType = this._globalState.get<string>('bypassType') || 'V1';
-                        webviewView.webview.postMessage({ command: 'syncStatus', status: 'download' });
 
                         const fileContent = getBypassContent(this._extensionUri.fsPath, bypassType);
 
-                        // Overwrite the local GEMINI.md file
-                        const geminiParentDir = path.dirname(geminiPath);
-                        if (!fs.existsSync(geminiParentDir)) {
-                            fs.mkdirSync(geminiParentDir, { recursive: true });
-                        }
-                        fs.writeFileSync(geminiPath, fileContent, 'utf8');
-
-                        // Overwrite the local Kiro agents.md file
-                        const kiroParentDir = path.dirname(kiroPath);
-                        if (!fs.existsSync(kiroParentDir)) {
-                            fs.mkdirSync(kiroParentDir, { recursive: true });
-                        }
-                        fs.writeFileSync(kiroPath, fileContent, 'utf8');
-
-                        // Output styles are appended to Claude Code's system prompt,
-                        // making role, tone, and formatting instructions more reliable.
-                        const claudeSettings = readJsonObject(claudeSettingsPath);
-                        const currentOutputStyle = claudeSettings.outputStyle;
-                        const existingBackup = this._globalState.get<ClaudeOutputStyleBackup>(CLAUDE_OUTPUT_STYLE_BACKUP_KEY);
-                        if (currentOutputStyle !== ONLYTRIS_OUTPUT_STYLE_NAME && existingBackup === undefined) {
-                            await this._globalState.update(CLAUDE_OUTPUT_STYLE_BACKUP_KEY, {
-                                hadValue: Object.prototype.hasOwnProperty.call(claudeSettings, 'outputStyle'),
-                                value: currentOutputStyle
-                            } satisfies ClaudeOutputStyleBackup);
+                        // Keep whatever the user had at each target before overwriting it.
+                        for (const key of targets) {
+                            backupUserFile(environmentFor(key));
                         }
 
-                        fs.mkdirSync(path.dirname(claudeOutputStylePath), { recursive: true });
-                        fs.writeFileSync(claudeOutputStylePath, createClaudeOutputStyleContent(fileContent), 'utf8');
-                        claudeSettings.outputStyle = ONLYTRIS_OUTPUT_STYLE_NAME;
-                        writeJsonObject(claudeSettingsPath, claudeSettings);
-
-                        // Migrate installations created by v1.0.0 without touching
-                        // any user-owned CLAUDE.md file.
-                        if (fs.existsSync(legacyClaudeRulePath)) {
-                            fs.unlinkSync(legacyClaudeRulePath);
+                        // Antigravity: overwrite the local GEMINI.md file.
+                        if (targets.indexOf('gemini') !== -1) {
+                            fs.mkdirSync(path.dirname(geminiPath), { recursive: true });
+                            fs.writeFileSync(geminiPath, fileContent, 'utf8');
                         }
+
+                        // Kiro: overwrite the local agents.md file.
+                        if (targets.indexOf('kiro') !== -1) {
+                            fs.mkdirSync(path.dirname(kiroPath), { recursive: true });
+                            fs.writeFileSync(kiroPath, fileContent, 'utf8');
+                        }
+
+                        if (targets.indexOf('claude') !== -1) {
+                            // Output styles are appended to Claude Code's system prompt,
+                            // making role, tone, and formatting instructions more reliable.
+                            const claudeSettings = readJsonObject(claudeSettingsPath);
+                            const currentOutputStyle = claudeSettings.outputStyle;
+                            const existingBackup = this._globalState.get<ClaudeOutputStyleBackup>(CLAUDE_OUTPUT_STYLE_BACKUP_KEY);
+                            if (!isManagedOutputStyle(currentOutputStyle) && existingBackup === undefined) {
+                                await this._globalState.update(CLAUDE_OUTPUT_STYLE_BACKUP_KEY, {
+                                    hadValue: Object.prototype.hasOwnProperty.call(claudeSettings, 'outputStyle'),
+                                    value: currentOutputStyle
+                                } satisfies ClaudeOutputStyleBackup);
+                            }
+
+                            fs.mkdirSync(path.dirname(claudeOutputStylePath), { recursive: true });
+                            fs.writeFileSync(claudeOutputStylePath, createClaudeOutputStyleContent(fileContent), 'utf8');
+                            claudeSettings.outputStyle = LUNA_OUTPUT_STYLE_NAME;
+                            writeJsonObject(claudeSettingsPath, claudeSettings);
+
+                            // Migrate installations created by earlier releases without
+                            // touching any user-owned CLAUDE.md file.
+                            for (const stalePath of staleClaudeStylePaths.concat(staleClaudeRulePaths)) {
+                                if (fs.existsSync(stalePath)) {
+                                    fs.unlinkSync(stalePath);
+                                }
+                            }
+                        }
+
+                        await this._globalState.update(SELECTED_TARGETS_KEY, targets);
 
                         const updatedStats = getFileStats();
-                        // Reply success to Webview
+                        const claudeNote = targets.indexOf('claude') !== -1
+                            ? ' Hãy mở phiên Claude Code mới để áp dụng Output Style Luna.'
+                            : '';
+                        // One wording, shown in the panel banner and as the editor
+                        // notification, so the two cannot describe the same action differently.
+                        const notice = `Đồng bộ thành công cho: ${formatTargetList(targets)}.${claudeNote}`;
                         webviewView.webview.postMessage({
                             command: 'syncResponse',
                             success: true,
-                            content: fileContent,
+                            notice: notice,
+                            targets: targets,
                             stats: updatedStats
                         });
-                        vscode.window.showInformationMessage('Đồng bộ thành công. Hãy mở phiên Claude Code mới để áp dụng Output Style OnlyTris.');
+                        vscode.window.showInformationMessage(notice);
                     } catch (err) {
                         const errMsg = err instanceof Error ? err.message : String(err);
+                        const notice = `Kích hoạt thất bại: ${errMsg}`;
                         webviewView.webview.postMessage({
                             command: 'syncResponse',
                             success: false,
-                            error: errMsg
+                            notice: notice
                         });
-                        vscode.window.showErrorMessage(`Kích hoạt thất bại: ${errMsg}`);
+                        vscode.window.showErrorMessage(notice);
                     }
                     break;
                 }
                 case 'resetBypass': {
                     try {
-                        if (fs.existsSync(geminiPath)) {
-                            fs.unlinkSync(geminiPath);
-                        }
-                        if (fs.existsSync(kiroPath)) {
-                            fs.unlinkSync(kiroPath);
-                        }
-                        if (fs.existsSync(claudeOutputStylePath)) {
-                            fs.unlinkSync(claudeOutputStylePath);
-                        }
-                        if (fs.existsSync(legacyClaudeRulePath)) {
-                            fs.unlinkSync(legacyClaudeRulePath);
-                        }
+                        const targets = resolveTargets(message.targets);
+                        const restored: TargetKey[] = [];
 
-                        if (fs.existsSync(claudeSettingsPath)) {
-                            const claudeSettings = readJsonObject(claudeSettingsPath);
-                            if (claudeSettings.outputStyle === ONLYTRIS_OUTPUT_STYLE_NAME) {
-                                const backup = this._globalState.get<ClaudeOutputStyleBackup>(CLAUDE_OUTPUT_STYLE_BACKUP_KEY);
-                                if (backup?.hadValue) {
-                                    claudeSettings.outputStyle = backup.value;
-                                } else {
-                                    delete claudeSettings.outputStyle;
-                                }
-                                writeJsonObject(claudeSettingsPath, claudeSettings);
+                        // Put back what the user had, remove only what we wrote.
+                        for (const key of targets) {
+                            if (restoreUserFile(environmentFor(key)) === 'restored') {
+                                restored.push(key);
                             }
                         }
-                        await this._globalState.update(CLAUDE_OUTPUT_STYLE_BACKUP_KEY, undefined);
+
+                        if (targets.indexOf('claude') !== -1) {
+                            // Profiles under the legacy names are always ours, never user content.
+                            for (const stalePath of staleClaudeStylePaths.concat(staleClaudeRulePaths)) {
+                                if (fs.existsSync(stalePath)) {
+                                    fs.unlinkSync(stalePath);
+                                }
+                            }
+
+                            if (fs.existsSync(claudeSettingsPath)) {
+                                const claudeSettings = readJsonObject(claudeSettingsPath);
+                                if (isManagedOutputStyle(claudeSettings.outputStyle)) {
+                                    const backup = this._globalState.get<ClaudeOutputStyleBackup>(CLAUDE_OUTPUT_STYLE_BACKUP_KEY);
+                                    if (backup?.hadValue) {
+                                        claudeSettings.outputStyle = backup.value;
+                                    } else {
+                                        delete claudeSettings.outputStyle;
+                                    }
+                                    writeJsonObject(claudeSettingsPath, claudeSettings);
+                                }
+                            }
+                            await this._globalState.update(CLAUDE_OUTPUT_STYLE_BACKUP_KEY, undefined);
+                        }
+
+                        await this._globalState.update(SELECTED_TARGETS_KEY, targets);
+
                         const updatedStats = getFileStats();
+                        const restoreNote = restored.length > 0
+                            ? ` Đã khôi phục nội dung gốc của: ${formatTargetList(restored)}.`
+                            : '';
+                        const notice = `Đã gỡ bỏ cấu hình Bypass cho: ${formatTargetList(targets)}.${restoreNote}`;
                         webviewView.webview.postMessage({
                             command: 'resetResponse',
                             success: true,
+                            notice: notice,
+                            targets: targets,
+                            restored: restored,
                             stats: updatedStats
                         });
-                        vscode.window.showInformationMessage('Đã gỡ bỏ cấu hình Bypass thành công!');
+                        vscode.window.showInformationMessage(notice);
                     } catch (err) {
                         const errMsg = err instanceof Error ? err.message : String(err);
+                        const notice = `Gỡ bỏ Bypass thất bại: ${errMsg}`;
                         webviewView.webview.postMessage({
                             command: 'resetResponse',
                             success: false,
-                            error: errMsg
+                            notice: notice
                         });
-                        vscode.window.showErrorMessage(`Gỡ bỏ Bypass thất bại: ${errMsg}`);
+                        vscode.window.showErrorMessage(notice);
                     }
                     break;
                 }
                 case 'saveBypassType': {
                     const bypassType = message.bypassType || 'V1';
                     this._globalState.update('bypassType', bypassType);
+                    const notice = `Đã lưu cấu hình Bypass ${bypassType} thành công!`;
                     webviewView.webview.postMessage({
                         command: 'bypassTypeSaveResponse',
                         success: true,
-                        message: `Đã lưu cấu hình Bypass ${bypassType} thành công!`
+                        notice: notice
                     });
-                    vscode.window.showInformationMessage(`Đã chuyển đổi sang cấu hình Bypass ${bypassType}.`);
+                    vscode.window.showInformationMessage(notice);
                     break;
                 }
             }
@@ -303,24 +487,10 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
 }
 
 export function deactivate() {
-    const geminiPath = path.join(os.homedir(), '.gemini', 'GEMINI.md');
-    const kiroPath = path.join(os.homedir(), '.kiro', 'steering', 'agents.md');
-    try {
-        if (fs.existsSync(geminiPath)) {
-            fs.unlinkSync(geminiPath);
-            console.log('Successfully deleted GEMINI.md on deactivation');
-        }
-    } catch (err) {
-        console.error('Failed to delete GEMINI.md on deactivation:', err);
-    }
-    try {
-        if (fs.existsSync(kiroPath)) {
-            fs.unlinkSync(kiroPath);
-            console.log('Successfully deleted agents.md on deactivation');
-        }
-    } catch (err) {
-        console.error('Failed to delete agents.md on deactivation:', err);
-    }
-    // Claude's user-level output style intentionally persists when VS Code reloads or
-    // the extension deactivates. The explicit Reset action owns its cleanup.
+    // Nothing is removed here on purpose. Deactivation also runs on every window
+    // reload and on editor shutdown, so deleting the profile here would remove the
+    // very files the target assistant needs, and it would delete files the user
+    // owned whenever the extension was disabled or uninstalled. The explicit
+    // "Gỡ bỏ" action owns cleanup for every environment, and it honours the
+    // environment selection from step 2.
 }

@@ -8,33 +8,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Safety Jailbreak Lab</title>
   <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <style>
-    /* Premium Theme and Layout */
     :root {
-      --font-header: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
 
-      --card-bg: rgba(30, 31, 45, 0.45);
-      --card-border: rgba(255, 255, 255, 0.06);
-      --accent-glow: rgba(0, 242, 254, 0.08);
+      --bg: #0d0910;
+      --surface: #17111d;
+      --surface-raised: #1e1626;
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.13);
 
-      --color-primary: #00f2fe;
-      --color-secondary: #4facfe;
-      --color-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      --accent: #ff5fa2;
+      --accent-2: #b16cff;
+      --accent-gradient: linear-gradient(135deg, #ff5fa2 0%, #b16cff 100%);
+      --accent-soft: rgba(255, 95, 162, 0.12);
+      --accent-ink: #1a0512;
 
-      --color-success: #10b981;
-      --color-success-bg: rgba(16, 185, 129, 0.08);
-      --color-success-border: rgba(16, 185, 129, 0.15);
+      --color-success: #34d399;
+      --color-success-bg: rgba(52, 211, 153, 0.10);
+      --color-success-border: rgba(52, 211, 153, 0.22);
 
-      --color-error: #f43f5e;
-      --color-error-bg: rgba(244, 63, 94, 0.08);
-      --color-error-border: rgba(244, 63, 94, 0.15);
+      --color-error: #ff7a6b;
+      --color-error-bg: rgba(255, 122, 107, 0.10);
+      --color-error-border: rgba(255, 122, 107, 0.24);
 
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-label: #cbd5e1;
+      --text-main: #f0eaf4;
+      --text-label: #b6a9c2;
+      --text-muted: #7d7189;
+
+      --radius: 10px;
     }
 
     * {
@@ -44,129 +49,161 @@
     }
 
     body {
-      font-family: var(--font-body);
+      font-family: var(--font-ui);
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.55;
       color: var(--text-main);
-      background: var(--vscode-sideBar-background, #12131a);
-      padding: 16px;
-      overflow-y: auto;
+      background: var(--vscode-sideBar-background, var(--bg));
+      background-image: radial-gradient(120% 55% at 50% -10%, rgba(255, 95, 162, 0.14) 0%, rgba(177, 108, 255, 0.06) 45%, transparent 78%);
+      background-attachment: fixed;
+      padding: 16px 14px 22px;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Panel Container */
     .panel-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
     }
 
-    /* Header styling with modern text gradient */
     .header {
-      text-align: center;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .header-mark {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-ink);
+      box-shadow: 0 2px 10px rgba(255, 95, 162, 0.22);
+    }
+
+    .header-text {
+      min-width: 0;
     }
 
     .header-logo {
-      font-family: var(--font-header);
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      background: var(--color-gradient);
+      font-size: 13.5px;
+      font-weight: 650;
+      letter-spacing: -0.1px;
+      background: var(--accent-gradient);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-      display: inline-block;
-      filter: drop-shadow(0 2px 8px rgba(0, 242, 254, 0.25));
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .header-subtitle {
-      font-size: 9px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
+      font-size: 10.5px;
+      font-weight: 500;
       color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* Cards */
     .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 60%), var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
       padding: 14px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .card:hover {
-      border-color: rgba(0, 242, 254, 0.15);
-      box-shadow: 0 4px 24px var(--accent-glow);
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: var(--accent-gradient);
+      color: var(--accent-ink);
+      font-size: 10.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card-title {
-      font-family: var(--font-header);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-label);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--text-main);
     }
 
-    .card-title svg {
-      color: var(--color-primary);
+    .card-hint {
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--text-muted);
+      margin-bottom: 12px;
     }
 
-    /* Status Items */
     .info-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      gap: 10px;
+      min-height: 30px;
+      padding: 5px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .info-row:first-child {
+      border-top: none;
+      padding-top: 0;
     }
 
     .info-row:last-child {
-      border-bottom: none;
       padding-bottom: 0;
     }
 
     .info-label {
-      color: var(--text-muted);
+      color: var(--text-label);
       font-weight: 500;
+      font-size: 12.5px;
     }
 
     .info-value {
-      font-weight: 600;
-      color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      font-weight: 500;
     }
 
-    /* Pulsing Active Badge */
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-size: 10px;
+      padding: 3px 9px 3px 7px;
+      border-radius: 999px;
+      font-size: 10.5px;
       font-weight: 600;
+      white-space: nowrap;
       background: var(--color-success-bg);
       color: var(--color-success);
       border: 1px solid var(--color-success-border);
@@ -176,37 +213,142 @@
       width: 5px;
       height: 5px;
       border-radius: 50%;
+      flex-shrink: 0;
       background: var(--color-success);
-      box-shadow: 0 0 6px var(--color-success);
-      animation: pulse 1.6s infinite;
+      animation: pulse 2s ease-in-out infinite;
     }
 
     @keyframes pulse {
-      0% {
-        transform: scale(0.9);
-        opacity: 0.6;
+
+      0%,
+      100% {
+        opacity: 0.45;
       }
 
       50% {
-        transform: scale(1.1);
         opacity: 1;
-      }
-
-      100% {
-        transform: scale(0.9);
-        opacity: 0.6;
       }
     }
 
-    /* Copyable ID */
-    .copyable-id {
-      background: rgba(0, 0, 0, 0.2);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Courier New', Courier, monospace;
+    .target-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .target-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .target-row:first-child {
+      border-top: none;
+      padding-top: 2px;
+    }
+
+    .target-row:last-child {
+      padding-bottom: 2px;
+    }
+
+    .target-info {
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .target-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .target-desc {
       font-size: 11px;
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      max-width: 120px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .target-row.off .target-name,
+    .target-row.off .target-desc {
+      color: var(--text-muted);
+    }
+
+    .target-row.off .badge {
+      opacity: 0.45;
+    }
+
+    .toggle {
+      flex-shrink: 0;
+      position: relative;
+      width: 34px;
+      height: 19px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--line-strong);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+    }
+
+    .toggle[aria-checked="true"] {
+      background: var(--accent-gradient);
+      border-color: transparent;
+    }
+
+    .toggle[aria-checked="true"]::after {
+      transform: translateX(15px);
+      background: #fff;
+    }
+
+    .toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+    }
+
+    .select-all-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      padding: 2px 0;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    .link-btn:hover {
+      text-decoration: underline;
+    }
+
+    .copyable-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-label);
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--line);
+      padding: 2px 7px;
+      border-radius: 5px;
+      max-width: 150px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -220,157 +362,223 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
-      border-radius: 4px;
-      transition: all 0.2s;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
     }
 
     .btn-copy:hover {
       background: rgba(255, 255, 255, 0.06);
-      color: var(--color-primary);
+      color: var(--text-main);
     }
 
     .btn-copy svg {
-      width: 12px;
-      height: 12px;
+      width: 13px;
+      height: 13px;
     }
 
-    /* Custom Segmented Switch */
     .segmented-control {
-      display: flex;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 2px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 3px;
     }
 
     .segment-option {
-      flex: 1;
+      position: relative;
       text-align: center;
-      padding: 7px 4px;
+      padding: 8px 6px;
       border-radius: 6px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
-      position: relative;
-    }
-
-    .segment-option.active {
-      background: var(--color-gradient);
-      color: #0c0d12;
-      box-shadow: 0 2px 8px rgba(0, 242, 254, 0.2);
+      transition: background 0.18s, color 0.18s;
     }
 
     .segment-option:hover:not(.active) {
       color: var(--text-main);
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .segment-option.active {
+      background: var(--accent-gradient);
+      color: var(--accent-ink);
+      box-shadow: 0 2px 10px rgba(255, 95, 162, 0.18);
     }
 
     .badge-recommend {
       position: absolute;
-      top: -6px;
-      right: 4px;
-      background: #00f2fe;
-      color: #0c0d12;
-      font-size: 8px;
-      padding: 0px 4px;
-      border-radius: 3px;
-      font-weight: 700;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      top: -7px;
+      right: 3px;
+      background: var(--surface-raised);
+      border: 1px solid var(--line-strong);
+      color: var(--text-label);
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      padding: 1px 5px;
+      border-radius: 4px;
     }
 
-    /* Actions Panel */
+    .badge-recommend.highlight {
+      background: var(--accent-gradient);
+      border-color: transparent;
+      color: var(--accent-ink);
+      box-shadow: 0 1px 6px rgba(255, 95, 162, 0.35);
+    }
+
+    .segment-option.active .badge-recommend {
+      background: var(--accent-ink);
+      border-color: transparent;
+      color: #ffd9e8;
+    }
+
+    .selected-note {
+      margin-top: 10px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--text-muted);
+      display: flex;
+      gap: 7px;
+      align-items: flex-start;
+    }
+
+    .selected-note svg {
+      flex-shrink: 0;
+      width: 13px;
+      height: 13px;
+      margin-top: 2px;
+      color: var(--text-muted);
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+    }
+
+    .feature-item svg {
+      flex-shrink: 0;
+      width: 13px;
+      height: 13px;
+      margin-top: 2px;
+      color: var(--accent);
+    }
+
+    .feature-item strong {
+      color: var(--text-label);
+      font-weight: 600;
+    }
+
     .actions-panel {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    /* Premium Button styles */
     .btn {
       padding: 11px 16px;
-      border: none;
-      border-radius: 8px;
-      font-family: var(--font-header);
-      font-size: 12px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-family: var(--font-ui);
+      font-size: 12.5px;
       font-weight: 600;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.2px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       outline: none;
       width: 100%;
-      text-align: center;
       display: inline-flex;
       justify-content: center;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      transition: background 0.18s, border-color 0.18s, color 0.18s, opacity 0.18s, filter 0.18s, box-shadow 0.18s;
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
-      transform: none !important;
-      box-shadow: none !important;
+    }
+
+    .btn svg {
+      flex-shrink: 0;
     }
 
     .btn-primary {
-      background: var(--color-gradient);
-      color: #0c0d12;
-      box-shadow: 0 3px 12px rgba(0, 242, 254, 0.15);
+      background: var(--accent-gradient);
+      color: var(--accent-ink);
+      box-shadow: 0 3px 14px rgba(255, 95, 162, 0.20);
     }
 
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-1.5px);
-      box-shadow: 0 5px 16px rgba(0, 242, 254, 0.25);
-      filter: brightness(1.05);
+      filter: brightness(1.08);
+      box-shadow: 0 4px 18px rgba(255, 95, 162, 0.28);
     }
 
     .btn-primary:active:not(:disabled) {
-      transform: translateY(0);
-      box-shadow: 0 2px 6px rgba(0, 242, 254, 0.1);
+      filter: brightness(0.94);
+      box-shadow: 0 2px 8px rgba(255, 95, 162, 0.16);
     }
 
     .btn-secondary {
       background: transparent;
-      color: var(--text-main);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-label);
+      border-color: var(--line-strong);
     }
 
     .btn-secondary:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.15);
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
     }
 
-    .btn-secondary svg {
-      width: 12px;
-      height: 12px;
-      transition: transform 0.3s;
+    .btn-danger {
+      background: transparent;
+      color: var(--color-error);
+      border-color: var(--color-error-border);
     }
 
-    .btn-secondary:hover svg {
-      transform: rotate(45deg);
+    .btn-danger:hover:not(:disabled) {
+      background: var(--color-error-bg);
     }
 
-    /* Alert and Toast Banners */
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
     .alert-banner {
       display: none;
       align-items: flex-start;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: 8px;
-      font-size: 11px;
-      line-height: 1.4;
-      margin-bottom: 2px;
-      animation: slideDown 0.3s ease-out;
+      gap: 9px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 1.45;
+      animation: slideDown 0.22s ease-out;
     }
 
     @keyframes slideDown {
       from {
-        transform: translateY(-8px);
+        transform: translateY(-6px);
         opacity: 0;
       }
 
@@ -396,8 +604,8 @@
 
     .alert-icon {
       flex-shrink: 0;
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
       margin-top: 1px;
     }
 
@@ -407,35 +615,40 @@
     }
 
     .alert-close {
+      flex-shrink: 0;
       cursor: pointer;
       background: none;
       border: none;
       color: currentColor;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1;
-      opacity: 0.6;
-      transition: opacity 0.2s;
+      opacity: 0.55;
+      transition: opacity 0.15s;
     }
 
     .alert-close:hover {
       opacity: 1;
     }
 
-    /* Custom Loading Overlay */
+    .footnote {
+      font-size: 10.5px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2px 4px 0;
+    }
+
     .overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(12, 13, 18, 0.8);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      inset: 0;
+      background: rgba(13, 9, 16, 0.84);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       z-index: 1000;
     }
 
@@ -444,36 +657,28 @@
     }
 
     .spinner {
-      width: 28px;
-      height: 28px;
-      border: 2px solid rgba(0, 242, 254, 0.1);
-      border-top: 2px solid var(--color-primary);
+      width: 26px;
+      height: 26px;
+      border: 2px solid rgba(255, 255, 255, 0.10);
+      border-top-color: var(--accent);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      filter: drop-shadow(0 0 6px var(--color-primary));
+      animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
+      to {
         transform: rotate(360deg);
       }
     }
 
     .overlay-text {
-      font-family: var(--font-header);
       font-size: 12px;
       font-weight: 500;
-      color: var(--color-primary);
-      letter-spacing: 0.5px;
+      color: var(--text-label);
     }
 
-    /* Scrollbar override */
     ::-webkit-scrollbar {
-      width: 4px;
+      width: 6px;
     }
 
     ::-webkit-scrollbar-track {
@@ -481,12 +686,23 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.10);
+      border-radius: 3px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
@@ -494,73 +710,182 @@
 <body>
 
   <div class="panel-container">
-    <!-- Overlay for Action Progress -->
     <div id="saveOverlay" class="overlay">
       <div class="spinner"></div>
       <div id="overlayText" class="overlay-text">Vui lòng chờ...</div>
     </div>
 
-    <!-- Header -->
     <div class="header">
-      <div class="header-logo">Agent Safety Jailbreak Lab</div>
+      <div class="header-mark">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 12l2 2 4-4"></path>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="header-logo">Agent Safety Jailbreak Lab</div>
+        <div class="header-subtitle">Đánh giá chỉ dẫn &amp; guardrail đa mô hình</div>
+      </div>
     </div>
 
-    <!-- Alert Notifications -->
     <div id="alertBanner" class="alert-banner">
       <div class="alert-icon">
-        <svg id="alertIconSvg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-          <!-- Dynamically populated -->
-        </svg>
+        <svg id="alertIconSvg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"></svg>
       </div>
       <div id="alertMessage" class="alert-message"></div>
       <button id="alertCloseBtn" class="alert-close" aria-label="Đóng">&times;</button>
     </div>
 
-    <!-- System Status Card -->
     <div class="card">
-      <div class="card-title">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
+      <div class="card-head">
+        <span class="step-num">1</span>
+        <span class="card-title">Chọn hồ sơ nghiên cứu</span>
+      </div>
+      <div class="card-hint">Hồ sơ quyết định bộ chỉ dẫn sẽ được ghi vào các môi trường AI ở bước 2.</div>
+      <div class="segmented-control" role="tablist">
+        <div id="bypassV1Opt" class="segment-option active" role="tab" tabindex="0" aria-selected="true">
+          Bypass V1
+          <span class="badge-recommend">Lưu ý</span>
+        </div>
+        <div id="bypassV2Opt" class="segment-option" role="tab" tabindex="0" aria-selected="false">
+          Bypass V2
+        </div>
+        <div id="bypassV3Opt" class="segment-option" role="tab" tabindex="0" aria-selected="false">
+          Bypass V3
+          <span class="badge-recommend highlight">Luna</span>
+        </div>
+      </div>
+      <div class="selected-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <path d="M12 16v-4"></path>
           <path d="M12 8h.01"></path>
         </svg>
-        Hệ Thống
+        <span>Đang chọn: <strong id="selectedProfileLabel">Bypass V1</strong>. Đổi hồ sơ xong cần đồng bộ lại thì mới có
+          hiệu lực.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-num">2</span>
+        <span class="card-title">Chọn môi trường áp dụng</span>
+      </div>
+      <div class="card-hint">Bật môi trường bạn muốn ghi hồ sơ vào. Môi trường tắt sẽ được giữ nguyên, không đồng bộ
+        và không gỡ bỏ.</div>
+
+      <div class="select-all-row">
+        <span id="targetSummary" class="card-hint" style="margin: 0;">Đang chọn 3/3</span>
+        <button id="toggleAllBtn" class="link-btn" type="button">Bỏ chọn tất cả</button>
+      </div>
+
+      <div class="target-list">
+        <div class="target-row" data-target="gemini">
+          <button class="toggle" role="switch" aria-checked="true" data-toggle="gemini"
+            aria-label="Bật/tắt Antigravity"></button>
+          <div class="target-info">
+            <div class="target-name">Antigravity</div>
+            <div class="target-desc">Gemini 3.1 Pro và Claude</div>
+          </div>
+          <span id="statGemini" class="badge"
+            style="background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error-border);">
+            <span class="badge-dot" style="background: var(--color-error); animation: none;"></span>
+            Chưa kích hoạt
+          </span>
+        </div>
+
+        <div class="target-row" data-target="kiro">
+          <button class="toggle" role="switch" aria-checked="true" data-toggle="kiro"
+            aria-label="Bật/tắt Kiro"></button>
+          <div class="target-info">
+            <div class="target-name">Kiro</div>
+            <div class="target-desc">Steering, chạy Claude</div>
+          </div>
+          <span id="statKiro" class="badge"
+            style="background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error-border);">
+            <span class="badge-dot" style="background: var(--color-error); animation: none;"></span>
+            Chưa kích hoạt
+          </span>
+        </div>
+
+        <div class="target-row" data-target="claude">
+          <button class="toggle" role="switch" aria-checked="true" data-toggle="claude"
+            aria-label="Bật/tắt Claude Code"></button>
+          <div class="target-info">
+            <div class="target-name">Claude Code</div>
+            <div class="target-desc">API bên thứ ba tương thích</div>
+          </div>
+          <span id="statClaude" class="badge"
+            style="background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error-border);">
+            <span class="badge-dot" style="background: var(--color-error); animation: none;"></span>
+            Chưa kích hoạt
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-num">3</span>
+        <span class="card-title">Đồng bộ &amp; quản lý</span>
+      </div>
+      <div class="card-hint">Thao tác chỉ tác động lên những môi trường đang bật ở bước 2.</div>
+      <div class="actions-panel">
+        <button id="btnSync" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span id="btnSyncLabel">Đồng bộ 3 môi trường</span>
+        </button>
+        <div class="btn-row">
+          <button id="refreshBtn" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+              <polyline points="21 3 21 9 15 9"></polyline>
+            </svg>
+            Làm mới
+          </button>
+          <button id="btnReset" class="btn btn-danger">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            Gỡ bỏ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Thông tin phiên</span>
       </div>
       <div class="info-list">
         <div class="info-row">
-          <span class="info-label">Trạng thái</span>
+          <span class="info-label">Phiên bản</span>
+          <span id="extensionVersion" class="info-value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Giấy phép</span>
           <span class="badge">
             <span class="badge-dot"></span>
-            Free Active
-          </span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Antigravity (Gemini)</span>
-          <span id="statGemini" class="badge" style="background: rgba(244, 63, 94, 0.08); color: var(--color-error); border: 1px solid rgba(244, 63, 94, 0.15);">
-            <span class="badge-dot" style="background: var(--color-error); box-shadow: 0 0 6px var(--color-error); animation: none;"></span>
-            Chưa đồng bộ
-          </span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Kiro (Steering)</span>
-          <span id="statKiro" class="badge" style="background: rgba(244, 63, 94, 0.08); color: var(--color-error); border: 1px solid rgba(244, 63, 94, 0.15);">
-            <span class="badge-dot" style="background: var(--color-error); box-shadow: 0 0 6px var(--color-error); animation: none;"></span>
-            Chưa đồng bộ
-          </span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Claude Code</span>
-          <span id="statClaude" class="badge" style="background: rgba(244, 63, 94, 0.08); color: var(--color-error); border: 1px solid rgba(244, 63, 94, 0.15);">
-            <span class="badge-dot" style="background: var(--color-error); box-shadow: 0 0 6px var(--color-error); animation: none;"></span>
-            Chưa đồng bộ
+            MIT · Miễn phí
           </span>
         </div>
         <div class="info-row">
           <span class="info-label">Device ID</span>
           <span class="info-value">
             <span id="userId" class="copyable-id">-</span>
-            <button id="copyUserIdBtn" class="btn-copy" title="Sao chép Device ID">
+            <button id="copyUserIdBtn" class="btn-copy" title="Sao chép Device ID" aria-label="Sao chép Device ID">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -571,89 +896,9 @@
         </div>
       </div>
     </div>
-
-    <!-- Segmented Control for Bypass Type -->
-    <div class="card">
-      <div class="card-title">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 7h-9"></path>
-          <path d="M14 17H5"></path>
-          <circle cx="17" cy="17" r="3"></circle>
-          <circle cx="7" cy="7" r="3"></circle>
-        </svg>
-        Loại Bypass
-      </div>
-      <div class="segmented-control">
-        <div id="bypassV1Opt" class="segment-option active">
-          Bypass V1
-          <span class="badge-recommend">Lưu ý</span>
-        </div>
-        <div id="bypassV2Opt" class="segment-option">
-          Bypass V2
-        </div>
-      </div>
-    </div>
-
-    <!-- Features & Capabilities Card -->
-    <div class="card">
-      <div class="card-title">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
-        </svg>
-        Tính Năng & Chức Năng
-      </div>
-      <div class="info-list" style="font-size: 11px; color: var(--text-muted); line-height: 1.5; gap: 8px;">
-        <div style="display: flex; gap: 8px; align-items: flex-start;">
-          <span style="color: var(--color-primary); font-weight: bold;">•</span>
-          <span><strong>Bypass Rào Cản:</strong> Bỏ qua kiểm duyệt an toàn, mở rộng khả năng phản hồi của trợ lý
-            AI.</span>
-        </div>
-
-        <div style="display: flex; gap: 8px; align-items: flex-start;">
-          <span style="color: var(--color-primary); font-weight: bold;">•</span>
-          <span><strong>Antigravity:</strong> Hỗ trợ Gemini 3.1 Pro và Claude.</span>
-        </div>
-
-        <div style="display: flex; gap: 8px; align-items: flex-start;">
-          <span style="color: var(--color-primary); font-weight: bold;">•</span>
-          <span><strong>Kiro & Claude Code:</strong> Hỗ trợ Kiro chạy Claude và Claude Code sử dụng API bên thứ ba tương thích.</span>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="actions-panel">
-      <button id="btnSync" class="btn btn-primary">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        BYPASS
-      </button>
-      <button id="btnReset" class="btn btn-secondary" style="border-color: rgba(244, 63, 94, 0.25); color: var(--color-error);">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-        RESET (XOÁ)
-      </button>
-      <button id="refreshBtn" class="btn btn-secondary">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-        </svg>
-        Làm Mới Trạng Thế
-      </button>
+    <div class="footnote">
+      Dành cho nghiên cứu được cấp phép và thử nghiệm cục bộ. Không vô hiệu hoá kiểm soát truy cập hay chính sách nền
+      tảng của nhà cung cấp.
     </div>
   </div>
 
@@ -661,8 +906,8 @@
     (function () {
       const vscode = acquireVsCodeApi();
 
-      // DOM Elements
       const userIdVal = document.getElementById('userId');
+      const extensionVersionVal = document.getElementById('extensionVersion');
       const alertBanner = document.getElementById('alertBanner');
       const alertMessage = document.getElementById('alertMessage');
       const alertIconSvg = document.getElementById('alertIconSvg');
@@ -675,20 +920,41 @@
       const saveOverlay = document.getElementById('saveOverlay');
       const overlayText = document.getElementById('overlayText');
 
-      // Custom Segment Selector
       const bypassV1Opt = document.getElementById('bypassV1Opt');
       const bypassV2Opt = document.getElementById('bypassV2Opt');
+      const bypassV3Opt = document.getElementById('bypassV3Opt');
+      const selectedProfileLabel = document.getElementById('selectedProfileLabel');
+
+      const toggleAllBtn = document.getElementById('toggleAllBtn');
+      const targetSummary = document.getElementById('targetSummary');
+      const btnSyncLabel = document.getElementById('btnSyncLabel');
+      const toggleEls = Array.prototype.slice.call(document.querySelectorAll('.toggle[data-toggle]'));
+
+      const TARGET_KEYS = ['gemini', 'kiro', 'claude'];
+      const STAT_ELEMENT_BY_TARGET = {
+        gemini: 'statGemini',
+        kiro: 'statKiro',
+        claude: 'statClaude'
+      };
 
       let currentBypassType = 'V1';
       let deviceId = '';
+      let selectedTargets = TARGET_KEYS.slice();
 
-      // Ask extension host for initial state
+      const savedState = vscode.getState();
+      // The webview keeps its own selection while it lives; the host only supplies
+      // a saved selection when this webview was recreated from scratch.
+      const hasLocalTargets = Boolean(savedState && Array.isArray(savedState.selectedTargets));
+      if (hasLocalTargets) {
+        selectedTargets = savedState.selectedTargets.filter((key) => TARGET_KEYS.indexOf(key) !== -1);
+      }
+
       vscode.postMessage({ command: 'ready' });
 
-      // SVG Icon Paths
       const checkIconPath = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z';
       const errorIconPath = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
 
+      // Displays an inline banner with the given message and severity.
       function showNotification(message, type) {
         alertBanner.className = 'alert-banner ' + type;
         alertMessage.textContent = message;
@@ -699,48 +965,43 @@
         alertIconSvg.appendChild(pathEl);
       }
 
-      function updateFileStatUI(elementId, stats) {
-        const badge = document.getElementById(elementId);
-        if (!badge) return;
-
-        if (stats && stats.exists) {
-          badge.style.background = 'var(--color-success-bg)';
-          badge.style.color = 'var(--color-success)';
-          badge.style.borderColor = 'var(--color-success-border)';
-          
-          badge.replaceChildren();
-          const dotSpan = document.createElement('span');
-          dotSpan.className = 'badge-dot';
-          dotSpan.style.background = 'var(--color-success)';
-          dotSpan.style.boxShadow = '0 0 6px var(--color-success)';
-          dotSpan.style.animation = 'pulse 1.6s infinite';
-          badge.appendChild(dotSpan);
-          badge.appendChild(document.createTextNode(' Đã đồng bộ'));
-          badge.title = `Kích thước: ${stats.sizeBytes} bytes, Dòng: ${stats.lines}, Cập nhật: ${stats.mtime}`;
-        } else {
-          badge.style.background = 'var(--color-error-bg)';
-          badge.style.color = 'var(--color-error)';
-          badge.style.borderColor = 'var(--color-error-border)';
-          
-          badge.replaceChildren();
-          const dotSpan = document.createElement('span');
-          dotSpan.className = 'badge-dot';
-          dotSpan.style.background = 'var(--color-error)';
-          dotSpan.style.boxShadow = '0 0 6px var(--color-error)';
-          dotSpan.style.animation = 'none';
-          badge.appendChild(dotSpan);
-          badge.appendChild(document.createTextNode(' Chưa kích hoạt'));
-          badge.title = 'Tệp tin cấu hình chưa được khởi tạo';
-        }
-      }
-
+      // Hides the inline banner.
       function hideNotification() {
         alertBanner.className = 'alert-banner';
       }
 
-      alertCloseBtn.addEventListener('click', hideNotification);
+      // Renders the sync-state badge for one target environment.
+      function updateFileStatUI(elementId, stats) {
+        const badge = document.getElementById(elementId);
+        if (!badge) return;
 
-      // Copy to Clipboard Utility
+        const active = Boolean(stats && stats.exists);
+
+        badge.style.background = active ? 'var(--color-success-bg)' : 'var(--color-error-bg)';
+        badge.style.color = active ? 'var(--color-success)' : 'var(--color-error)';
+        badge.style.borderColor = active ? 'var(--color-success-border)' : 'var(--color-error-border)';
+
+        badge.replaceChildren();
+        const dotSpan = document.createElement('span');
+        dotSpan.className = 'badge-dot';
+        dotSpan.style.background = active ? 'var(--color-success)' : 'var(--color-error)';
+        dotSpan.style.animation = active ? 'pulse 2s ease-in-out infinite' : 'none';
+        badge.appendChild(dotSpan);
+        badge.appendChild(document.createTextNode(active ? 'Đã đồng bộ' : 'Chưa kích hoạt'));
+        badge.title = active
+          ? 'Kích thước: ' + stats.sizeBytes + ' bytes, Dòng: ' + stats.lines + ', Cập nhật: ' + stats.mtime
+          : 'Tệp tin cấu hình chưa được khởi tạo';
+      }
+
+      // Applies a full status payload to every environment badge.
+      function applyStats(stats) {
+        if (!stats) return;
+        updateFileStatUI('statGemini', stats.gemini);
+        updateFileStatUI('statKiro', stats.kiro);
+        updateFileStatUI('statClaude', stats.claude);
+      }
+
+      // Copies text to the clipboard and reports the result.
       function copyText(text, successMsg) {
         if (!text || text === '-') return;
         if (navigator.clipboard && window.isSecureContext) {
@@ -754,6 +1015,7 @@
         }
       }
 
+      // Copies text using a temporary textarea when the clipboard API is unavailable.
       function fallbackCopy(text, successMsg) {
         const textArea = document.createElement('textarea');
         textArea.value = text;
@@ -770,143 +1032,164 @@
         document.body.removeChild(textArea);
       }
 
-      // Update Segment UI selection
+      // Reflects the selected profile in the segmented control and summary line.
       function updateSegmentUI(type) {
         currentBypassType = type;
-        if (type === 'V2') {
-          bypassV2Opt.classList.add('active');
-          bypassV1Opt.classList.remove('active');
-        } else {
-          bypassV1Opt.classList.add('active');
-          bypassV2Opt.classList.remove('active');
-        }
+        const isV2 = type === 'V2';
+        const isV3 = type === 'V3';
+        const isV1 = type === 'V1' || (!isV2 && !isV3);
+        bypassV2Opt.classList.toggle('active', isV2);
+        bypassV3Opt.classList.toggle('active', isV3);
+        bypassV1Opt.classList.toggle('active', isV1);
+        bypassV2Opt.setAttribute('aria-selected', String(isV2));
+        bypassV3Opt.setAttribute('aria-selected', String(isV3));
+        bypassV1Opt.setAttribute('aria-selected', String(isV1));
+        const labels = { V1: 'Bypass V1', V2: 'Bypass V2', V3: 'Bypass V3' };
+        selectedProfileLabel.textContent = labels[type] || 'Bypass V1';
       }
 
-      // Listen for message events from Extension Host
+      // Sends the newly selected profile to the extension host.
+      function selectBypassType(type) {
+        if (currentBypassType === type) return;
+        updateSegmentUI(type);
+        vscode.postMessage({ command: 'saveBypassType', bypassType: type });
+      }
+
+      // Reflects the selected environments in the toggles, summary and action buttons.
+      function updateTargetUI() {
+        toggleEls.forEach((el) => {
+          const key = el.getAttribute('data-toggle');
+          const on = selectedTargets.indexOf(key) !== -1;
+          el.setAttribute('aria-checked', String(on));
+          const row = el.closest('.target-row');
+          if (row) row.classList.toggle('off', !on);
+        });
+
+        const count = selectedTargets.length;
+        const total = TARGET_KEYS.length;
+        targetSummary.textContent = count === 0
+          ? 'Chưa chọn môi trường nào'
+          : 'Đang chọn ' + count + '/' + total;
+        toggleAllBtn.textContent = count === total ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
+
+        btnSyncLabel.textContent = count === 0
+          ? 'Chọn ít nhất 1 môi trường'
+          : 'Đồng bộ ' + count + ' môi trường';
+        btnSync.disabled = count === 0;
+        btnReset.disabled = count === 0;
+
+        vscode.setState({ selectedTargets: selectedTargets });
+      }
+
+      // Adds or removes one environment from the selection.
+      function toggleTarget(key) {
+        const index = selectedTargets.indexOf(key);
+        if (index === -1) {
+          selectedTargets = TARGET_KEYS.filter((k) => k === key || selectedTargets.indexOf(k) !== -1);
+        } else {
+          selectedTargets = selectedTargets.filter((k) => k !== key);
+        }
+        updateTargetUI();
+      }
+
+      alertCloseBtn.addEventListener('click', hideNotification);
+
       window.addEventListener('message', (event) => {
         const message = event.data;
         switch (message.command) {
           case 'load':
             deviceId = message.deviceId || '';
-            if (userIdVal) userIdVal.textContent = deviceId || '-';
-            updateSegmentUI(message.bypassType || 'V1');
-            if (message.stats) {
-              updateFileStatUI('statGemini', message.stats.gemini);
-              updateFileStatUI('statKiro', message.stats.kiro);
-              
-              updateFileStatUI('statClaude', message.stats.claude);
+            if (userIdVal) {
+              userIdVal.textContent = deviceId || '-';
+              userIdVal.title = deviceId || '';
             }
+            if (extensionVersionVal) {
+              extensionVersionVal.textContent = message.version || '-';
+            }
+            updateSegmentUI(message.bypassType || 'V1');
+            if (!hasLocalTargets && Array.isArray(message.targets)) {
+              selectedTargets = message.targets.filter((key) => TARGET_KEYS.indexOf(key) !== -1);
+            }
+            updateTargetUI();
+            applyStats(message.stats);
             hideNotification();
             break;
 
-          case 'syncStatus':
-            if (message.status === 'download') {
-              overlayText.textContent = 'Đang kích hoạt bypass...';
-            }
-            break;
-
           case 'syncResponse':
+          case 'resetResponse':
+          case 'bypassTypeSaveResponse':
+            // The host owns the wording so the banner and the editor notification
+            // always describe the action identically.
             saveOverlay.classList.remove('active');
             btnSync.removeAttribute('disabled');
-            if (message.success) {
-              showNotification('Kích hoạt thành công! Hãy mở phiên Claude mới.', 'success');
-              if (message.stats) {
-                updateFileStatUI('statGemini', message.stats.gemini);
-                updateFileStatUI('statKiro', message.stats.kiro);
-                
-                updateFileStatUI('statClaude', message.stats.claude);
-              }
-            } else {
-              showNotification('Lỗi kích hoạt: ' + message.error, 'error');
-            }
-            break;
-
-          case 'resetResponse':
-            saveOverlay.classList.remove('active');
             btnReset.removeAttribute('disabled');
-            if (message.success) {
-              showNotification('Đã gỡ bỏ Bypass thành công!', 'success');
-              if (message.stats) {
-                updateFileStatUI('statGemini', message.stats.gemini);
-                updateFileStatUI('statKiro', message.stats.kiro);
-                
-                updateFileStatUI('statClaude', message.stats.claude);
-              }
-            } else {
-              showNotification('Lỗi gỡ bỏ: ' + message.error, 'error');
-            }
-            break;
-
-          case 'bypassTypeSaveResponse':
-            if (message.success) {
-              showNotification(message.message, 'success');
-            } else {
-              showNotification('Không thể lưu cấu hình: ' + message.message, 'error');
+            updateTargetUI();
+            showNotification(message.notice || '', message.success ? 'success' : 'error');
+            if (message.success && message.stats) {
+              applyStats(message.stats);
             }
             break;
         }
       });
 
-      // Action: Trigger Bypass Synchronization
       btnSync.addEventListener('click', () => {
+        if (selectedTargets.length === 0) return;
         btnSync.setAttribute('disabled', 'true');
-        overlayText.textContent = 'Đang kích hoạt bypass...';
+        overlayText.textContent = 'Đang đồng bộ ' + selectedTargets.length + ' môi trường...';
         saveOverlay.classList.add('active');
         hideNotification();
 
-        vscode.postMessage({
-          command: 'activateSync'
-        });
+        vscode.postMessage({ command: 'activateSync', targets: selectedTargets.slice() });
       });
 
-      // Action: Trigger Reset / Clear Bypass
       btnReset.addEventListener('click', () => {
+        if (selectedTargets.length === 0) return;
         btnReset.setAttribute('disabled', 'true');
-        overlayText.textContent = 'Đang gỡ bỏ bypass...';
+        overlayText.textContent = 'Đang gỡ bỏ ' + selectedTargets.length + ' môi trường...';
         saveOverlay.classList.add('active');
         hideNotification();
 
-        vscode.postMessage({
-          command: 'resetBypass'
-        });
+        vscode.postMessage({ command: 'resetBypass', targets: selectedTargets.slice() });
       });
 
-      // Action: Copy Device ID
       document.getElementById('copyUserIdBtn').addEventListener('click', () => {
         copyText(deviceId, 'Sao chép Device ID thành công!');
       });
 
-      // Action: Refresh Status
       refreshBtn.addEventListener('click', () => {
         refreshBtn.disabled = true;
-        const iconSvg = refreshBtn.querySelector('svg');
-        if (iconSvg) iconSvg.style.transform = 'rotate(360deg)';
-
         vscode.postMessage({ command: 'ready' });
 
         setTimeout(() => {
           refreshBtn.disabled = false;
-          if (iconSvg) iconSvg.style.transform = 'none';
         }, 800);
       });
 
-      // Action: Change Bypass Type (V1)
-      bypassV1Opt.addEventListener('click', () => {
-        if (currentBypassType === 'V1') return;
-        updateSegmentUI('V1');
-        vscode.postMessage({
-          command: 'saveBypassType',
-          bypassType: 'V1'
+      toggleEls.forEach((el) => {
+        el.addEventListener('click', () => toggleTarget(el.getAttribute('data-toggle')));
+      });
+
+      document.querySelectorAll('.target-row .target-name').forEach((el) => {
+        el.addEventListener('click', () => {
+          const row = el.closest('.target-row');
+          if (row) toggleTarget(row.getAttribute('data-target'));
         });
       });
 
-      // Action: Change Bypass Type (V2)
-      bypassV2Opt.addEventListener('click', () => {
-        if (currentBypassType === 'V2') return;
-        updateSegmentUI('V2');
-        vscode.postMessage({
-          command: 'saveBypassType',
-          bypassType: 'V2'
+      toggleAllBtn.addEventListener('click', () => {
+        selectedTargets = selectedTargets.length === TARGET_KEYS.length ? [] : TARGET_KEYS.slice();
+        updateTargetUI();
+      });
+
+      updateTargetUI();
+
+      [[bypassV1Opt, 'V1'], [bypassV2Opt, 'V2'], [bypassV3Opt, 'V3']].forEach(([el, type]) => {
+        el.addEventListener('click', () => selectBypassType(type));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectBypassType(type);
+          }
         });
       });
     })();

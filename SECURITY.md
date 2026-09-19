@@ -18,4 +18,4 @@ Include:
 
 ## Security boundaries
 
-The extension writes user-level configuration files and downloads instruction profiles from an embedded remote endpoint. Treat profile content as untrusted input, review changes before distribution, and use the extension only in environments where you are authorized to modify agent configuration.
+The extension makes no network requests. It reads instruction profiles bundled in the package under `resources/rules/` and writes user-level configuration files: `~/.gemini/GEMINI.md`, `~/.kiro/steering/agents.md`, and the Claude Code output style plus the `outputStyle` key in the Claude configuration directory (`~/.claude` unless `CLAUDE_CONFIG_DIR` overrides it). Before overwriting a file it does not recognise as its own, it saves the previous contents to a `<file>.lunabak` sidecar and restores them on removal. Treat profile content as untrusted input, review changes before distribution, and use the extension only in environments where you are authorized to modify agent configuration.
