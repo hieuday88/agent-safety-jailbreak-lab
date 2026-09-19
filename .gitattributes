@@ -1,0 +1,14 @@
+# Normalise every text file to LF in the repository and in the working tree, so a
+# checkout does not depend on a global core.autocrlf setting. This matches what
+# .editorconfig already specifies.
+
+* text=auto eol=lf
+
+# Binary assets are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.vsix binary
+*.zip binary

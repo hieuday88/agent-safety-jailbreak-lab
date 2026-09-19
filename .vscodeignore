@@ -9,6 +9,9 @@ tsconfig.json
 src/**/*.ts
 !src/webview.html
 node_modules/**
+docs/**
+scripts/**
+test/**
 Full/**
 Full/
 *.vsix

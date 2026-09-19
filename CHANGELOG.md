@@ -4,39 +4,45 @@ All notable changes to this project are documented in this file.
 
 ## [1.3.0] - 2026-09-19
 
-### Changed
-
-- Renamed the project's brand identifiers to Luna: extension publisher `lazyluna`, Claude Code output style `Luna` (`output-styles/luna.md`), the icon gradient id, the LICENSE copyright holder, and the repository/homepage/bug URLs.
-- Renamed the research persona in `resources/rules/bypass_v1.md` to Luna.
-
-### Fixed
-
-- Restored four words in `resources/rules/bypass_v1.md` that an earlier persona rename had corrupted by replacing the `lo` substring: `ALLOWED`, `MONOLOGUE`, `LOOK` and `LOVE`.
-- Removing the profile now also cleans up the output style installed by pre-rename releases and restores the previously selected output style, so `settings.json` can no longer be left pointing at a style file that no longer exists.
-- Deactivating the extension no longer deletes `~/.gemini/GEMINI.md` or `~/.kiro/steering/agents.md`. Deactivation also runs on every window reload and on editor shutdown, so it removed the files the target assistant needs, and it deleted files the user owned whenever the extension was disabled or uninstalled. The explicit **Gỡ bỏ** action owns cleanup for every environment, which is how the Claude Code output style already behaved.
-- Synchronization now preserves what it overwrites. Before the first write to a file the extension does not recognise as its own, the previous contents are saved to a `<file>.lunabak` sidecar, and removal restores that copy instead of deleting the file. A file the extension neither owns nor has a backup for is left untouched, so removal can no longer delete content it did not write.
-- The panel banner and the editor notification now share one wording produced by the host. They previously carried two independently written messages for the same action, which drifted apart: a sync reported "Đã đồng bộ: …" in the panel and "Đồng bộ thành công cho: …" as a notification, with a different Claude Code sentence in each.
-- The session card now shows the real extension version, read from the packaged manifest, and the MIT license, replacing a `Free Active` badge that had no supporting logic anywhere in the extension.
-- Removed the unused `syncStatus` message. Its payload was named `download`, a leftover from the remote-fetch design removed in 1.2.0, and handling it overwrote the panel's "Đang đồng bộ N môi trường…" progress text with a less specific string.
-
-### Documentation
-
-- Corrected the README and `SECURITY.md`, which both claimed the profile is downloaded from a remote endpoint. The extension makes no network requests; it reads the profiles bundled under `resources/rules/`.
-- Corrected the README's profile count (three variants, not two) and rewrote its usage steps to name the actual controls, including the environment selection step.
-- Documented the file locations the extension writes, the overwrite-without-backup behavior, and the upgrade path from the pre-rename release.
-
-## [1.2.2] - 2026-09-19
-
-### Fixed
-
-- The three environment toggles in step 2 now actually control the scope of the actions: `Đồng bộ` and `Gỡ bỏ` only touch the environments that are switched on, instead of always writing or deleting Antigravity, Kiro and Claude Code.
-- Claude Code `settings.json` and output style backup handling now run only when Claude Code is one of the selected environments.
-- Result messages list the environments that were actually affected, and success banners no longer tell you to open a new Claude Code session when Claude Code was not synced.
-- Initial environment badges used the text `Chưa đồng bộ` while the rendered state used `Chưa kích hoạt`; both now read `Chưa kích hoạt`.
+Everything here landed after 1.2.0. Versions 1.2.1 and 1.2.2 were built locally
+during development but were never published, so their changes are included below.
 
 ### Added
 
-- The environment selection is persisted in the extension's global state, so it is restored when the webview is recreated.
+- `npm test` runs three verification suites committed under `test/`: host behaviour, cross-file consistency, and the panel script driven in a DOM shim.
+- `.vscode/launch.json` and `.vscode/tasks.json`, so pressing F5 launches an Extension Development Host as the documentation describes.
+- Synchronization saves what it is about to overwrite. The previous contents of a file the extension does not own are written to a `<file>.lunabak` sidecar, and removal restores that copy.
+- The environment selection from step 2 is persisted, so it is restored when the panel is recreated.
+- `docs/1.3.0-hardening-plan.md` records the design, assumptions and decisions behind this release.
+
+### Changed
+
+- The panel is fully offline. It no longer loads Google Fonts, it uses the editor's own font variables, and its content policy is now `default-src 'none'`.
+- The session card shows the real extension version, read from the packaged manifest, and the MIT license, replacing a `Free Active` badge that nothing in the extension supported.
+- The panel banner and the editor notification share one wording produced by the host; previously each wrote its own sentence for the same action.
+- Result messages name the environments actually affected, and a success banner no longer tells you to open a new Claude Code session when Claude Code was not synced.
+- Release artifacts are named `agent-safety-jailbreak-lab-<version>.vsix`, and `npm run package:release` produces that name from `package.json`.
+- Repository, homepage and bug URLs point at the extension's actual location, `hieuday88/agent-safety-jailbreak-lab`.
+- The extension is published as `lazyluna`, the Claude Code output style is `Luna` (`output-styles/luna.md`), and the research persona in `resources/rules/bypass_v1.md` is Luna.
+- `.gitattributes` pins LF, matching what `.editorconfig` already specified, so a checkout no longer depends on a global `core.autocrlf` setting.
+
+### Fixed
+
+- Synchronization and removal now say that the profile only takes effect in a new session. The notice previously told only Claude Code users to open a new one, so a sync from Antigravity or Kiro appeared to have done nothing while the session already open kept the profile it began with. The README says the same thing plainly, instead of advising a restart "when necessary".
+- The environment toggles in step 2 now control the scope of the action: `Đồng bộ` and `Gỡ bỏ` only touch the environments that are switched on, instead of always writing or deleting Antigravity, Kiro and Claude Code.
+- Deactivating the extension no longer deletes `~/.gemini/GEMINI.md` or `~/.kiro/steering/agents.md`. Deactivation also runs on every window reload and on editor shutdown, so it removed the files the target assistant needs and deleted files the user owned whenever the extension was disabled or uninstalled. Cleanup now belongs to **Gỡ bỏ** alone.
+- Removing the profile also cleans up the output style installed by pre-rename releases and restores the output style that was in use before the first sync, so `settings.json` can no longer be left pointing at a style file that no longer exists.
+- Claude Code `settings.json` and output style backup handling now run only when Claude Code is one of the selected environments.
+- Restored four words in `resources/rules/bypass_v1.md` that an earlier persona rename had corrupted by replacing the `lo` substring: `ALLOWED`, `MONOLOGUE`, `LOOK` and `LOVE`.
+- Initial environment badges read `Chưa kích hoạt` in both the static markup and the rendered state; the markup previously said `Chưa đồng bộ`.
+- Removed the unused `syncStatus` message. Its payload was named `download`, left over from the remote-fetch design removed in 1.2.0, and handling it overwrote the panel's "Đang đồng bộ N môi trường…" progress text with a less specific string.
+- Removed six dead fallback profile filenames from the loader; each profile now resolves through its single real filename.
+
+### Documentation
+
+- Corrected the README and `SECURITY.md`, which both claimed the profile is downloaded from a remote endpoint. The extension reads the profiles bundled under `resources/rules/` and makes no network requests.
+- Corrected the README's profile count (three variants, not two) and rewrote its usage steps to name the actual controls, including the environment selection step.
+- Documented the file locations the extension writes, the `.lunabak` sidecar that protects the previous contents, and the upgrade path from the pre-rename release.
 
 ## [1.2.0] - 2026-08-20
 

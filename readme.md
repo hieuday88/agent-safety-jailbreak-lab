@@ -27,7 +27,7 @@ Extension identifier: `lazyluna.agent-safety-jailbreak-lab`.
 
 ### Install a prebuilt VSIX
 
-1. Download the `.vsix` file from the project release.
+1. Download `agent-safety-jailbreak-lab-<version>.vsix` from the project release.
 2. Open the Extensions view in VS Code or a compatible editor.
 3. Choose **Install from VSIX...** from the overflow menu.
 4. Reload the editor when prompted.
@@ -42,9 +42,12 @@ Requirements:
 ```bash
 npm ci
 npm run check
-npm run compile
-npm run package
+npm test
+npm run package:release
 ```
+
+The release artifact is written to `agent-safety-jailbreak-lab-<version>.vsix`, with the
+version read from `package.json`.
 
 ## Usage
 
@@ -54,8 +57,8 @@ The sidebar is a three-step flow:
 2. **Chọn hồ sơ nghiên cứu** (select profile): pick the research profile, `V1`, `V2`, or `V3`.
 3. **Chọn môi trường áp dụng** (select environments): switch on the environments to target. An environment left off is never read, written, or removed.
 4. **Đồng bộ & quản lý** (sync and manage): the sync button names how many environments it will touch, and only those are written. Changing the profile takes effect after the next sync.
-5. Restart the target assistant when necessary, then begin your evaluation.
-6. Use **Gỡ bỏ** (remove) to take the profile back out of the selected environments. It acts on the same selection as step 3, puts back any original file contents saved during the first sync, and restores the Claude Code output style that was in use before the first sync.
+5. Open a **new session** in each target assistant. An assistant composes the profile into its instructions when a session starts, so a session that is already open keeps the profile it began with — until you start a new one, a sync looks like it did nothing.
+6. Use **Gỡ bỏ** (remove) to take the profile back out of the selected environments. It acts on the same selection as step 3, puts back any original file contents saved during the first sync, and restores the Claude Code output style that was in use before the first sync. Removal is immediate on disk, but a session that is already open keeps the previous profile until you start a new one.
 
 ## Upgrading from earlier versions
 

@@ -4,23 +4,23 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
+/** Filenames of the bundled research profiles, keyed by profile version. */
+const PROFILE_FILENAMES: Record<string, string> = {
+    V1: 'bypass_v1.md',
+    V2: 'bypass_v2.md',
+    V3: 'bypass_v3.md'
+};
+
 function getBypassContent(extensionPath: string, bypassType: string): string {
     const normalizedType = bypassType.toUpperCase();
-    const variants: Record<string, string[]> = {
-        V1: ['bypass_v1.md', 'bypass-v1.md', 'gemini_v1.md'],
-        V2: ['bypass_v2.md', 'bypass-v2.md', 'gemini_v2.md'],
-        V3: ['bypass_v3.md', 'bypass-v3.md', 'gemini_v3.md']
-    };
-    const filenames = variants[normalizedType] ?? variants.V1;
-    const primaryFileName = filenames[0];
+    const filename = PROFILE_FILENAMES[normalizedType] ?? PROFILE_FILENAMES.V1;
+    const fullPath = path.join(extensionPath, 'resources', 'rules', filename);
 
-    for (const filename of filenames) {
-        const fullPath = path.join(extensionPath, 'resources', 'rules', filename);
-        if (fs.existsSync(fullPath)) {
-            return fs.readFileSync(fullPath, 'utf8');
-        }
+    if (!fs.existsSync(fullPath)) {
+        throw new Error(`Không tìm thấy file cấu hình bypass ${bypassType} (${filename}) trong extension.`);
     }
-    throw new Error(`Không tìm thấy file cấu hình bypass ${bypassType} (${primaryFileName}) trong extension.`);
+
+    return fs.readFileSync(fullPath, 'utf8');
 }
 
 function getClaudeConfigDir(): string {
@@ -253,7 +253,7 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
         // Every body this extension can write, so a file it owns is never mistaken
         // for user content, and vice versa.
         const bundledProfiles: string[] = [];
-        for (const profileType of ['V1', 'V2', 'V3']) {
+        for (const profileType of Object.keys(PROFILE_FILENAMES)) {
             try {
                 bundledProfiles.push(getBypassContent(this._extensionUri.fsPath, profileType));
             } catch {
@@ -380,12 +380,13 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
                         await this._globalState.update(SELECTED_TARGETS_KEY, targets);
 
                         const updatedStats = getFileStats();
-                        const claudeNote = targets.indexOf('claude') !== -1
-                            ? ' Hãy mở phiên Claude Code mới để áp dụng Output Style Luna.'
-                            : '';
-                        // One wording, shown in the panel banner and as the editor
-                        // notification, so the two cannot describe the same action differently.
-                        const notice = `Đồng bộ thành công cho: ${formatTargetList(targets)}.${claudeNote}`;
+                        // An assistant composes the profile into its instructions when a
+                        // session starts, so a session that is already open keeps the one
+                        // it began with. That applies to every environment, not just
+                        // Claude Code, and saying it only there made a sync from
+                        // Antigravity or Kiro look like it had done nothing.
+                        const notice = `Đồng bộ thành công cho: ${formatTargetList(targets)}. `
+                            + 'Hãy mở phiên làm việc mới trong các môi trường đó để hồ sơ có hiệu lực.';
                         webviewView.webview.postMessage({
                             command: 'syncResponse',
                             success: true,
@@ -447,7 +448,10 @@ class GeminiWriterViewProvider implements vscode.WebviewViewProvider {
                         const restoreNote = restored.length > 0
                             ? ` Đã khôi phục nội dung gốc của: ${formatTargetList(restored)}.`
                             : '';
-                        const notice = `Đã gỡ bỏ cấu hình Bypass cho: ${formatTargetList(targets)}.${restoreNote}`;
+                        // Removal is immediate on disk, but a session that is already open
+                        // still runs on whatever profile it started with.
+                        const notice = `Đã gỡ bỏ cấu hình Bypass cho: ${formatTargetList(targets)}.${restoreNote}`
+                            + ' Phiên làm việc đang mở vẫn giữ hồ sơ cũ cho tới khi bạn mở phiên mới.';
                         webviewView.webview.postMessage({
                             command: 'resetResponse',
                             success: true,

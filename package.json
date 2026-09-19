@@ -7,11 +7,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lazyluna/agent-safety-jailbreak-lab.git"
+    "url": "https://github.com/hieuday88/agent-safety-jailbreak-lab.git"
   },
-  "homepage": "https://github.com/lazyluna/agent-safety-jailbreak-lab#readme",
+  "homepage": "https://github.com/hieuday88/agent-safety-jailbreak-lab#readme",
   "bugs": {
-    "url": "https://github.com/lazyluna/agent-safety-jailbreak-lab/issues"
+    "url": "https://github.com/hieuday88/agent-safety-jailbreak-lab/issues"
   },
   "icon": "resources/icon.png",
   "preview": true,
@@ -64,7 +64,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
-    "package": "vsce package"
+    "test": "npm run compile && node test/run.js",
+    "package": "vsce package",
+    "package:release": "node scripts/package-release.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
