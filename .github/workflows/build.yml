@@ -32,8 +32,11 @@ jobs:
       - name: Compile
         run: npm run compile
 
+      - name: Test
+        run: node test/run.js
+
       - name: Package VSIX
-        run: npm run package -- --out agent-safety-jailbreak-lab-${{ github.sha }}.vsix
+        run: npm run package:release
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
